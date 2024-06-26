@@ -38,3 +38,31 @@ The idea of this step is to migrate the model from the exploration notebook to a
 * The `pd.get_dummies` method was not used to perform One-Hot Encoding. Instead, custom code was built to do it. The reason is that if one of the categories of the features we want to One-Hot Encode is not present on the data, `get_dummies` will not create a column for that category, whereas the correct thing would be to create the column for that category with all 0s. With this custom code, only the categories selected by the DS get encoded and if any of them is not present on the data, it gets filled with 0s.
 
 * There are some issues with the test script `test_model.py`. First, the path to the data is incorrect and needed to be changed in order to run the tests. Then, the `test_model_predict` test initializes a `DelayModel` object and tries to run the `predict` method without never calling the `fit` method first. This is unacceptable and ideally, an exception should be returned indicating that the model has not been trained. However, the test expects the `predict` method to return a list of ints, independent of this error, which I think is undesirable. Since the test file can't be changed, we return a dummy list filled with a very large negative value (`-2**60`) in this case, so that the test runs correctly.
+
+## API development
+
+On this step, the goal is to serve the trained model and provide an endpoint for inference.
+
+The API should load the model on startup from a local file. In order to do this, we extended the `model.py` script with a `save` method which writes the `DelayModel` object to a `pickle` file on a given path. Then, we trained a model over all the available data and stored it locally with the following code:
+
+```
+from challenge.model import DelayModel
+import pandas as pd
+
+# Read the data
+df = pd.read_csv("data/data.csv")
+
+# Create the model
+model = DelayModel()
+
+# Preprocess the data
+X_train, y_train = model.preprocess(df, "delay")
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Store the model
+model.save("challenge/tmp/model_checkpoint.pkl")
+```
+
+The API reads this `pickle` file on startup for loading the trained model.
