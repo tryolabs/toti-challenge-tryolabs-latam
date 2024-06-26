@@ -46,7 +46,7 @@ On this step, the goal is to serve the trained model and provide an endpoint for
 The API should load the model on startup from a local file. In order to do this, we extended the `model.py` script with a `save` method which writes the `DelayModel` object to a `pickle` file on a given path. Then, we trained a model over all the available data and stored it locally with the following code:
 
 ```
-from challenge.model import DelayModel
+from model import DelayModel
 import pandas as pd
 
 # Read the data
@@ -66,3 +66,5 @@ model.save("challenge/tmp/model_checkpoint.pkl")
 ```
 
 The API reads this `pickle` file on startup for loading the trained model.
+
+Due to the way the API tests are built, we're unable to use FastAPI's startup event or `lifespan` method for initializing the API, which is the recommended way of loading the model on startup. The way the tests for the API are built, the API startup methods don't get invoked and the API doesn't get initialized. To circumvent this, we initialize the model directly on the `api.py` script, which is undesirable.

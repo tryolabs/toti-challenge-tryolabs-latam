@@ -3,7 +3,7 @@ import pandas as pd
 from typing import Tuple, Union, List
 from sklearn.linear_model import LogisticRegression
 from datetime import datetime
-from pickle import dump
+from pickle import dump, load
 
 
 class DataError(Exception):
@@ -148,3 +148,9 @@ class DelayModel:
         """
         with open(path, "wb") as f:
             dump(self, f)
+
+    @staticmethod
+    def load(path: str):
+        with open(path, "rb") as f:
+            model = load(f)
+        return model
