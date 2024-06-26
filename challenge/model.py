@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Tuple, Union, List
 from sklearn.linear_model import LogisticRegression
 from datetime import datetime
+from pickle import dump
 
 
 class DataError(Exception):
@@ -137,3 +138,13 @@ class DelayModel:
             # list filled with the value -2**60
             return list([-(2**60)] * len(features))
         return list(self._model.predict(features).astype(int))
+
+    def save(self, path: str) -> None:
+        """
+        Save this DelayModel object to the pickle file indicated on the path.
+
+        Args:
+            path (str): path to the file were to write the model
+        """
+        with open(path, "wb") as f:
+            dump(self, f)
