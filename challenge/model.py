@@ -75,15 +75,10 @@ class DelayModel:
             if col not in data.columns:
                 raise DataError(message=f"Column '{col}' not present in the raw data")
 
-        # Build the delay columns
-        data["delay"] = data.apply(self._build_delay, axis=1)
-
         # Get the target column from the data
         if target_column is not None:
-            if target_column not in data.columns:
-                raise DataError(
-                    message=f"target_column '{target_column}' not present in the raw data"
-                )
+            # Build the delay columns
+            data[target_column] = data.apply(self._build_delay, axis=1)
             target = data[[target_column]]
 
         # Get the one-hot encoding of the columns.
