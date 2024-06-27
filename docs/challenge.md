@@ -122,3 +122,14 @@ The API is deployed as a Cloud Run Service that exposes a public endpoint. In or
 After the deployment is completed, the API is available at https://delay-model-dpmrk4cwxq-uw.a.run.app, and the prediction endpoint is available at https://delay-model-dpmrk4cwxq-uw.a.run.app/predict. We can test the service using Postman or run the provided stress test.
 
 The results of the stress test are an error rate of 0%, an average response time of 343ms, a maximum response time of 743ms and the API is able to respond to 87.69 requests per second.
+
+
+## CI/CD Pipeline
+
+On this final step, the goal is to setup a proper CI/CD pipeline.
+
+The CI workflows focus on running the tests and assesing the quality of the code each time there's a push to the repository, with the goal of detecting bugs earlier, correcting code faster and ensuring good code quality practices.
+
+The CD workflows focus on training the model, deploying the API and running the stress testing against it. These workflows only run when there's a push to the `main`, `develop` or `release` branches on the repository.
+
+* Undesirable model tracking
