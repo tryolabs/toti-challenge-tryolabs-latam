@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Tuple, Union, List
 from sklearn.linear_model import LogisticRegression
 from datetime import datetime
+from pickle import dump, load
 
 
 class DataError(Exception):
@@ -74,15 +75,10 @@ class DelayModel:
             if col not in data.columns:
                 raise DataError(message=f"Column '{col}' not present in the raw data")
 
-        # Build the delay columns
-        data["delay"] = data.apply(self._build_delay, axis=1)
-
         # Get the target column from the data
         if target_column is not None:
-            if target_column not in data.columns:
-                raise DataError(
-                    message=f"target_column '{target_column}' not present in the raw data"
-                )
+            # Build the delay columns
+            data[target_column] = data.apply(self._build_delay, axis=1)
             target = data[[target_column]]
 
         # Get the one-hot encoding of the columns.
@@ -136,4 +132,20 @@ class DelayModel:
             # However, so that the `test_model_predict` test runs correctly, we return a dummy
             # list filled with the value -2**60
             return list([-(2**60)] * len(features))
-        return list(self._model.predict(features).astype(int))
+        return self._model.predict(features).tolist()
+
+    def save(self, path: str) -> None:
+        """
+        Save this DelayModel object to the pickle file indicated on the path.
+
+        Args:
+            path (str): path to the file were to write the model
+        """
+        with open(path, "wb") as f:
+            dump(self, f)
+
+    @staticmethod
+    def load(path: str):
+        with open(path, "rb") as f:
+            model = load(f)
+        return model
