@@ -132,7 +132,7 @@ class DelayModel:
             # However, so that the `test_model_predict` test runs correctly, we return a dummy
             # list filled with the value -2**60
             return list([-(2**60)] * len(features))
-        return list(self._model.predict(features).astype(int))
+        return self._model.predict(features).tolist()
 
     def save(self, path: str) -> None:
         """

@@ -67,4 +67,8 @@ model.save("challenge/tmp/model_checkpoint.pkl")
 
 The API reads this `pickle` file on startup for loading the trained model.
 
-Due to the way the API tests are built, we're unable to use FastAPI's startup event or `lifespan` method for initializing the API, which is the recommended way of loading the model on startup. The way the tests for the API are built, the API startup methods don't get invoked and the API doesn't get initialized. To circumvent this, we initialize the model directly on the `api.py` script, which is undesirable.
+Here are some important details about this step:
+
+* Due to the way the API tests are built, we're unable to use FastAPI's startup event or `lifespan` method for initializing the API, which is the recommended way of loading the model on startup. The way the tests for the API are built, the API startup methods don't get invoked and the API doesn't get initialized. To circumvent this, we initialize the model directly on the `api.py` script, which is undesirable.
+
+* `pydantic` was used to define the input schema and the input validations. A custom exception handler needed to be built for the `RequestValidationError` so that a status code 400 is returned instead of the default 422 "Unprocessable Entity". The change was made to fit the tests provided for the API.
