@@ -86,3 +86,39 @@ The provided Dockerfile was completed so that the image is built and the API is 
 In order to use a Python version similar to the one used throughout the development, we change the base image to be the `3.9-slim`. This is a more lightweight base image and it is closer to the the version used during development (`3.9.4`).
 
 ### GCP
+
+The API is deployed as a Cloud Run Service that exposes a public endpoint. In order to accomplish this, these were the steps taken:
+
+1. A GCP project was created with the ID `rodrigo-tryolabs-latam`.
+2. The Artifact Registry is used to store the Docker image of the API. Before this, we need to create the repository for the image, with the following command:
+
+    `gcloud artifacts repositories create --repository-format=docker --location=us-west1 delay-model-service`
+
+    This creates a repository on the address `us-west1-docker.pkg.dev/rodrigo-tryolabs-latam/delay-model-service`.
+
+3. Then, we need to build the Docker image and tag it with the address of the created repository. We can do this with the command:
+
+    `docker build . -t us-west1-docker.pkg.dev/rodrigo-tryolabs-latam/delay-model-service/delay-model-api`
+
+4. Before we can push the image to the remote Artifact Registry repository, we need to allow Docker to authenticate to GCP. We can do it with the command:
+
+    `gcloud auth configure-docker us-west1-docker.pkg.dev`
+
+5. Now, we can push the image to the repository:
+
+    `docker push us-west1-docker.pkg.dev/rodrigo-tryolabs-latam/delay-model-service/delay-model-api`
+
+6. Finally, we can deploy the image as a Cloud Run Service with the command:
+
+    ```
+    gcloud run deploy delay-model \
+        --image us-west1-docker.pkg.dev/rodrigo-tryolabs-latam/delay-model-service/delay-model-api \
+        --allow-unauthenticated \
+        --region us-west1
+    ```
+
+    This command will deploy the previously uploaded Docker image as a service. The argument `--allow-unauthenticated` publicly exposes the API and allows for unauthenticated requests. Note that some default arguments are used: the CPU limit is set to 1 vCPU; the memory limit is set to 512MiB; the service is shutdown when idle.
+
+After the deployment is completed, the API is available at https://delay-model-dpmrk4cwxq-uw.a.run.app, and the prediction endpoint is available at https://delay-model-dpmrk4cwxq-uw.a.run.app/predict. We can test the service using Postman or run the provided stress test.
+
+The results of the stress test are an error rate of 0%, an average response time of 343ms, a maximum response time of 743ms and the API is able to respond to 87.69 requests per second.
