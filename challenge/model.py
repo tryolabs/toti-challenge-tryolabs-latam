@@ -1,9 +1,9 @@
-import pandas as pd
-
-from typing import Tuple, Union, List
-from sklearn.linear_model import LogisticRegression
 from datetime import datetime
 from pickle import dump, load
+from typing import List, Tuple, Union
+
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
 
 
 class DataError(Exception):

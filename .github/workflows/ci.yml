@@ -18,6 +18,15 @@ jobs:
         run: |
           pip install -r requirements.txt -r requirements-dev.txt -r requirements-test.txt
 
+      - name: Check format with black
+        run: black --check --extend-exclude tests .
+
+      - name: Check style with flake8
+        run: flake8 --extend-exclude tests .
+
+      - name: Check import sorting with isort
+        run: isort --check --extend-skip tests .
+
       - name: Run model tests
         run: make model-test
 
