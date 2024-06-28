@@ -128,8 +128,37 @@ The results of the stress test are an error rate of 0%, an average response time
 
 On this final step, the goal is to setup a proper CI/CD pipeline.
 
-The CI workflows focus on running the tests and assesing the quality of the code each time there's a push to the repository, with the goal of detecting bugs earlier, correcting code faster and ensuring good code quality practices.
+The Continuous Integration (CI) workflow focuses on running the tests and assesing the quality of the code each time there's a push to the repository, with the goal of detecting bugs earlier, correcting code faster and ensuring good code quality practices.
 
-The CD workflows focus on training the model, deploying the API and running the stress testing against it. These workflows only run when there's a push to the `main`, `develop` or `release` branches on the repository.
+The Continuous Deployment (CD) workflow focuses on training the model, deploying the API and running the stress test against it. This workflow only runs when there's a push to the `main`, `develop` or `release` branches.
 
-* Undesirable model tracking
+Let's describe each workflow with more detail.
+
+### Continuous Integration
+
+The goals of this workflow are checking the code quality and testing it. For the first goal, the code is checked using `black`, `flake8` and `isort` to ensure that the style and format are correct and fit the repository standards. For the second goal, the provided test suites (`model-test` and `api-test`) are ran to ensure that the changes done on the code don't affect the functionality of the `DelayModel` class and the API.
+
+Important decisions made on this step:
+
+* The test suites require a trained model available for testing purposes. However, this test suites run on Github workers and don't have access to local models. To circumvent this, the model checkpoint is tracked with Git and uploaded to the remote. This is not desirable, since model's can crow rapidly in size and managing them inside the repository can become a problem. The ideal solution would be to maintain a proper Model Registry, with remote storage and a good version management, so that trained models can be uploaded to it or downloaded for testing or deployment. Due to time restrictions and since the model checkpoint is lightweight on this case, the decision to track the model was taken.
+* The `model-test` suite had to be modified due to an error. The path to the data file on the suite was `../../data/data.csv`, which assumed that the tests were ran from the `tests/model/` directory, but tests should actually be run from the project root folder, where the `Makefile` is. To fix this, we change the path to be `data/data.csv`. With this change, tests run correctly and can be triggered from the GA.
+
+### Continuous Deployment
+
+The goal of this workflow is to train the model, build the Docker image with it and deploy it to a Cloud Run service. This workflow only runs when there's a push to the `main`, `develop` or `release` branches and it deploys a different API for each of these. The reasoning is that having different deployments for different stages of the development of features and releases can help in testing how the changes affect the deployment, while keeping the `main` API intact and serving only the released code features.
+
+Here are the most important steps taken to develop this workflow:
+
+* A small and simple training script (`train.py`) was created so that the GA trains the model before deploying it. This training script uses all the available data, preprocesses it, trains the model and writes it to the location used by the Dockerfile to put the model inside the Docker image. This is a simplification of a real scenario. Ideally, the data would be stored remotely and we would have different remote jobs for preprocessing the data, training the model and uploading it to a Model Registry. These remote jobs could be triggered by the same events that trigger this workflow, but none of the preprocessing or training would run inside the GA synchronously.
+* A GCP Service Account `cd-pipeline-sa` was created to grant the Github Action runner with permissions to push the Docker image to the Artifact Registry repository and to deploy the Cloud Run Service. The roles given to this SA are:
+    - `Artifact Registry Writer`: enables the SA to push Docker images to the Artifact Registry repositories
+    - `Cloud Run Admin`: gives the SA full control over the Cloud Run services deployed
+    - `Service Account User`: gives the SA the necessary permissions to act as the default Cloud Run service account. This permission is needed for deploying from the Github Action.
+We created one single SA for simplification, since we only use it in a single workflow. Ideally, we should have multiple SAs, each with more granular and reduced permissions; for example, we could have a "Cloud Run SA" which only has control over the services and nothing else, and a separate "Artifact Registry SA" which only has access to the repository.
+* A `dev` environment was created on the Github Repository, containing various configuration variables (mostly names used through the GCP deployment) and secrets (the key to access the SA `cd-pipeline-sa`). The created configuration variables are:
+    - `GAR_IMAGE_NAME=delay-model-api`
+    - `GAR_REPOSITORY=us-west1-docker.pkg.dev/rodrigo-tryolabs-latam/delay-model-service`
+    - `GCP_PROJECT_ID=rodrigo-tryolabs-latam`
+    - `GCP_REGION=us-west1`
+    - `GCR_SERVICE_NAME=delay-model`
+* After deployment of the service, the stress tests run against the deployed API. As mentioned, different APIs are deployed depending on the branch. To point the stress test script to the correct API, a small modification was needed to be done to the `Makefile`, so that the URL of the API is passed as an argument on the `make stress-test` command. The final command is `make stress-test API_URL=<api-url>`.
