@@ -136,7 +136,7 @@ On this final step, the goal was to setup a proper CI/CD pipeline.
 
 The Continuous Integration (CI) workflow focuses on running the tests and assesing the quality of the code each time there's a push to the repository, with the goal of detecting bugs earlier, correcting code faster and ensuring good code quality practices.
 
-The Continuous Deployment (CD) workflow focuses on training the model, deploying the API and running the stress test against it. This workflow only runs when there's a push to the `main`, `develop` or `release` branches.
+The Continuous Deployment (CD) workflow focuses on training the model, deploying the API and running the stress test against it. This workflow only runs when there's a push to the `main` or `develop` branches.
 
 ### Continuous Integration
 
@@ -149,7 +149,9 @@ Important decisions made on this step:
 
 ### Continuous Deployment
 
-The goal of this workflow is to train the model, build the Docker image with it and deploy it to a Cloud Run service. This workflow only runs when there's a push to the `main`, `develop` or `release` branches and it deploys a different API for each of these. The reasoning is that having different deployments for different stages of the development of features and releases can help in testing how the changes affect the deployment, while keeping the `main` API intact and serving only the released code features.
+The goal of this workflow is to train the model, build the Docker image with it and deploy it to a Cloud Run service. This workflow only runs when there's a push to the `main` or `develop` branches and it deploys a different API for each of these. The reasoning is that having different deployments for different stages of the development of features can help in testing how the changes affect the deployment, while keeping the `main` API intact and serving only the released code features.
+
+At first, the pipeline was designed and developed to also deploy when there were pushes to the `release` branches. However, since `release` branches are carved out of the develop branch, it was decided that this deployment could be avoided since everything would already be tested on the `develop` branch.
 
 Here are the most important steps taken to develop this workflow:
 
@@ -169,7 +171,7 @@ We created one single SA for simplification, since we only use it in a single wo
 
 ## Closing Thoughts and Enhancements
 
-All the steps of the challenge were completed. Each step had it's individual PR, with a description of the changes to complement the sections documented on this file. To finalize,  a `release` branch is carved out of the `develop` branch, and after testing the API deployed for the `release` branch and assesing that the GAs run correctly, the `release` branch is merged into the `main` branch, with a `v1.0.0` tag created on the merge commit. All of these changes and merges can be reviewed inside the repository. All of the feature branches and PRs are left there for review. The provided testing endpoint is the URL of the service deployed for the `main` branch.
+All the steps of the challenge were completed. Each step had it's individual PR, with a description of the changes to complement the sections documented on this file. To finalize,  a `release` branch is carved out of the `develop` branch, and after testing the API deployed for the `develop` branch and assesing that the GAs run correctly, the `release` branch is merged into the `main` branch, with a `v1.0.0` tag created on the merge commit. All of these changes and merges can be reviewed inside the repository. All of the feature branches and PRs are left there for review. The provided testing endpoint is the URL of the service deployed for the `main` branch.
 
 Although the provided solutions accomplishes the goals of the challenge, several decissions were made which are not optimal and should be improved on a real production scenario. These decisions were made due to time restrictions or to fit the limitations of the challenge and the test suites. Various improvements were discussed throughout the documentation, but here we highlight some of the most important. A priority level ('nice to have' or 'must have') is also included assesing how vital this improvement is for a real solution.
 
