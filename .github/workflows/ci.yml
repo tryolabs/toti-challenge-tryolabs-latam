@@ -1,0 +1,34 @@
+name: 'Continuous Integration'
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt -r requirements-test.txt
+
+      - name: Check format with black
+        run: black --check --extend-exclude tests .
+
+      - name: Check style with flake8
+        run: flake8 --extend-exclude tests .
+
+      - name: Check import sorting with isort
+        run: isort --check --extend-skip tests .
+
+      - name: Run model tests
+        run: make model-test
+
+      - name: Run API tests
+        run: make api-test

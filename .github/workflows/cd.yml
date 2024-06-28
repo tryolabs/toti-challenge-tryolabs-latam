@@ -1,0 +1,86 @@
+name: 'Continuous Deployment'
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release/*
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      branch: main
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get the branch name
+        id: get_branch_name
+        run: |
+          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Authenticate to GCP
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.CD_SA_KEYS }}'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run training script
+        run: |
+          python train.py
+
+      - name: Authenticate Docker to GAR
+        uses: docker/login-action@v3
+        with:
+          registry: '${{ vars.GCP_REGION }}-docker.pkg.dev'
+          username: _json_key
+          password: ${{ secrets.CD_SA_KEYS }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: '${{ vars.GAR_REPOSITORY }}/${{ vars.GAR_IMAGE_NAME }}-${{ steps.get_branch_name.outputs.branch }}'
+
+      - name: Deploy the service to Cloud Run
+        id: 'deploy'
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ vars.GCR_SERVICE_NAME }}-${{ steps.get_branch_name.outputs.branch }}'
+          image: '${{ vars.GAR_REPOSITORY }}/${{ vars.GAR_IMAGE_NAME }}-${{ steps.get_branch_name.outputs.branch }}'
+          region: '${{ vars.GCP_REGION }}'
+          flags: '--allow-unauthenticated'
+
+    outputs:
+      service_url: ${{ steps.deploy.outputs.url }}
+
+  stress_test:
+    runs-on: ubuntu-latest
+    needs: deployment
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-test.txt
+
+      - name: Run stress test
+        run: |
+          make stress-test API_URL=${{ needs.deployment.outputs.service_url }}
